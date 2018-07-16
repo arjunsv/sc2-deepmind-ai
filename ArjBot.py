@@ -15,7 +15,8 @@ class ArjBot(sc2.BotAI):
     async def on_step(self, iteration):
         self.iteration = iteration
 
-        await self.intel()
+        await self.render_visualization()
+        await self.scout()
         await self.distribute_workers()
         await self.build_workers()
         await self.build_pylons()
@@ -26,15 +27,30 @@ class ArjBot(sc2.BotAI):
         await self.attack()
 
     async def render_visualization(self):
-        game_data = np.zeros((self.game_info.map_size[1], self.game_info.map_size[0]), 3, np.uint8)
+        game_data = np.zeros((self.game_info.map_size[1], self.game_info.map_size[0], 3), np.uint8)
+
+        # UNIT: [SIZE, (BGR COLOR)]
+        unit_dims = {
+            NEXUS: [15, (0, 255, 0)],
+            PYLON: [3, (20, 235, 0)],
+            PROBE: [1, (55, 200, 0)],
+
+            ASSIMILATOR: [2, (55, 200, 0)], 
+            GATEWAY: [3, (200, 100, 0)],
+            CYBERNETICSCORE: [3, (150, 150, 0)],
+            STARGATE: [5, (255, 0, 0)],
+            VOIDRAY: [3, (255, 100, 0)],
+        }
         
-        for nexus in self.units(NEXUS):
-            nex_pos = nexus.position
-            cv2.circle(game_data, (int(nex_pos[0]), int(nex_pos[1])), 10, (0, 255, 0), -1)
+        for unit_type in unit_dims:
+            for unit in self.units(unit_type).ready:
+                pos = unit.position
+                cv2.circle(game_data, (int(pos[0]), int(pos[1])), unit_dims[unit_type][0], unit_dims[unit_type][1], -1)
 
 
         flipped = cv2.flip(game_data, 0)
         resized = cv2.resize(flipped, dsize=None, fx=2, fy=2)
+
         cv2.imshow('Visualization', resized)
         cv2.waitKey(1)
 
